@@ -94,6 +94,7 @@ function addPackageInstallTask() {
         packageName: depNames
       })
     );
+    return tree;
   };
 }
 

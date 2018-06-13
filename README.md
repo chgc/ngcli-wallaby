@@ -1,28 +1,24 @@
-# Getting Started With Schematics
+# Requirement
 
-This repository is a basic Schematic implementation that serves as a starting point to create and publish Schematics to NPM.
+- Angular CLI Version 6+
 
-### Testing
+# Getting Started With ngcli-wallaby Schematics
 
-To test locally, install `@angular-devkit/schematics` globally and use the `schematics` command line tool. That tool acts the same as the `generate` command of the Angular CLI, but also has a debug mode.
+This schematics will let you setup wallaby.js testing environment by simply run following command.
 
-Check the documentation with
-```bash
-schematics --help
+```
+ng add ngcli-wallaby
 ```
 
-### Unit Testing
+After running `ng add ngcli-wallaby` command, it will do following things.
 
-`npm run test` will run the unit tests, using Jasmine as a runner and test framework.
+- Add the wallaby.js config file to the project.
+- Add the wallaby.js test bootstrap file to the project.
+- Exclude the src/wallabyTest.ts file in the tsconfig.json as it may affect Angular 2 AOT compilation.
+- Run npm install wallaby-webpack angular2-template-loader --save-dev.
 
-### Publishing
+In default setup, it uses [Chrome (headless) runner](https://wallabyjs.com/docs/integration/chrome.html) as default runner instead electron. If you want to use electron, you can manually change it back by changing the env setting to env: {kind: 'electron'}, and run `npm i electron`
 
-To publish, simply do:
+# Reference
 
-```bash
-npm run build
-npm publish
-```
-
-That's it!
- 
+[ngCliWebpackSample](https://github.com/wallabyjs/ngCliWebpackSample)

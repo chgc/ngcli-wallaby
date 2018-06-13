@@ -1,6 +1,6 @@
 {
   "name": "ngcli-wallaby",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "An schematic to add wallabyJS config to Angular project",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -13,6 +13,7 @@
   ],
   "author": "Kevin Yang",
   "license": "MIT",
+  "homepage": "https://github.com/chgc/ngcli-wallaby#readme",
   "schematics": "./src/schematics/collection.json",
   "dependencies": {
     "@angular-devkit/core": "^0.6.8",

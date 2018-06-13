@@ -59,40 +59,35 @@ function addBootstrapFile() {
 
 function modifyTsconfigExcludeFile() {
   return (tree: Tree) => {
-    const tsConfigSource = tree.read('tsconfig.json')!.toString('utf-8');
+    const tsConfigSource = tree
+      .read('src/tsconfig.app.json')!
+      .toString('utf-8');
     const json = JSON.parse(tsConfigSource);
     if (json['exclude']) {
       if (!(json['exclude'] as any[]).includes('wallabyTest.ts')) {
         json['exclude'].push('wallabyTest.ts');
       }
     }
-    tree.overwrite('tsconfig.json', JSON.stringify(json, null, 2));
+    tree.overwrite('src/tsconfig.app.json', JSON.stringify(json, null, 2));
   };
 }
 
-/**
- * Inserts `apply-loader` and `pug-loader` packages into
- * application's package.json
- */
 function addLoadersToPackageJson() {
-  return (host: Tree) => {
+  return (tree: Tree) => {
     devDependencies.forEach(dependency => {
       addDependencyToPackageJson(
-        host,
+        tree,
         'devDependencies',
         dependency.name,
         dependency.version
       );
     });
-    return host;
+    return tree;
   };
 }
 
-/**
- * Tell schematics engine that we need a package install after done
- */
 function addPackageInstallTask() {
-  return (_host: Tree, context: SchematicContext) => {
+  return (tree: Tree, context: SchematicContext) => {
     const depNames = devDependencies.map(d => d.name).join(' ');
     context.addTask(
       new NodePackageInstallTask({
@@ -112,13 +107,13 @@ export type DependencyTypes =
  * Adds a package to the package.json
  */
 export function addDependencyToPackageJson(
-  host: Tree,
+  tree: Tree,
   type: DependencyTypes,
   pkg: string,
   version: string = 'latest'
 ): Tree {
-  if (host.exists('package.json')) {
-    const sourceText = host.read('package.json')!.toString('utf-8');
+  if (tree.exists('package.json')) {
+    const sourceText = tree.read('package.json')!.toString('utf-8');
     const json = JSON.parse(sourceText);
     if (!json[type]) {
       json[type] = {};
@@ -128,8 +123,8 @@ export function addDependencyToPackageJson(
       json[type][pkg] = version;
     }
 
-    host.overwrite('package.json', JSON.stringify(json, null, 2));
+    tree.overwrite('package.json', JSON.stringify(json, null, 2));
   }
 
-  return host;
+  return tree;
 }

@@ -1,6 +1,6 @@
 {
   "name": "ngcli-wallaby",
-  "version": "1.0.0",
+  "version": "0.2.1",
   "description": "An schematic to add wallabyJS config to Angular project",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -21,6 +21,7 @@
     "@types/jasmine": "^2.6.0",
     "@types/node": "^8.0.31",
     "jasmine": "^2.8.0",
-    "typescript": "^2.5.2"
+    "typescript": "^2.5.2",
+    "@schematics/angular": "^0.5.13"
   }
 }

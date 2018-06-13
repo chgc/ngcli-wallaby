@@ -19,6 +19,8 @@ After running `ng add ngcli-wallaby` command, it will do following things.
 
 In default setup, it uses [Chrome (headless) runner](https://wallabyjs.com/docs/integration/chrome.html) as default runner instead electron. If you want to use electron, you can manually change it back by changing the env setting to env: {kind: 'electron'}, and run `npm i electron`
 
+In this version, it only works on simple angular project. If you are using multi projects structure, this schematics will not work. Please be attantion to that.
+
 # Reference
 
 [ngCliWebpackSample](https://github.com/wallabyjs/ngCliWebpackSample)

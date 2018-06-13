@@ -1,0 +1,10 @@
+{
+  "$schema":
+    "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Add wallabyJs Config files to your Angular project.",
+      "factory": "./ng-add"
+    }
+  }
+}

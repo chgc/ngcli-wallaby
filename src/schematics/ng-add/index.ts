@@ -4,17 +4,10 @@ import {
   SchematicContext,
   Tree,
   url,
-  apply,
-  move,
-  SchematicsException,
-  template,
-  mergeWith,
-  branchAndMerge,
-  filter
+  SchematicsException
 } from '@angular-devkit/schematics';
-
+import { template as interpolateTemplate } from '@angular-devkit/core';
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
-import { hostname } from 'os';
 
 const devDependencies = [
   {
@@ -37,53 +30,65 @@ interface ProjectList {
   libs: string[];
 }
 
-export default function ngAdd(_options: NgAddOptions): Rule {
+export default function(_options: NgAddOptions): Rule {
+  return chain([
+    addConfigFile(),
+    addBootstrapFile(),
+    modifyTsconfigExcludeFile(),
+    addLoadersToPackageJson(),
+    addPackageInstallTask()
+  ]);
+}
+
+function addConfigFile(): Rule {
   return (tree: Tree, context: SchematicContext) => {
-    return chain([
-      addConfigFile(tree),
-      addBootstrapFile(tree),
-      modifyTsconfigExcludeFile(),
-      addLoadersToPackageJson(),
-      addPackageInstallTask()
-    ])(tree, context);
+    const nx = containNxScematics(tree);
+    let importCompilerOptions, importAlias;
+    const wallabyConfigSourceFileName = nx ? '/nx/wallaby.js' : '/wallaby.js';
+    const wallabyConfigFileName = '/wallaby.js';
+
+    if (nx) {
+      importCompilerOptions = createCompilerOptions(getProjectLibs(tree));
+      importAlias = createAlias(tree);
+    } else {
+      importCompilerOptions = '';
+      importAlias = '';
+    }
+    const files: Tree = url(`../../files`)(context) as Tree;
+    const scriptContent = files
+      .read(wallabyConfigSourceFileName)!
+      .toString('utf-8');
+
+    let createContent = interpolateTemplate(scriptContent)({
+      importCompilerOptions,
+      importAlias
+    });
+    if (!tree.exists(wallabyConfigFileName)) {
+      tree.create(wallabyConfigFileName, createContent);
+    }
+
+    return tree;
   };
 }
 
-function addConfigFile(tree: Tree): Rule {
-  const nx = containNxScematics(tree);
-  let importCompilerOptions, importAlias;
-  const wallabyConfigFileName = nx ? 'nx' : '';
-  const wallabyConfigSourceFileName = nx ? '/nx/wallaby.js' : '/wallaby.js';
-
-  if (nx) {
-    importCompilerOptions = createCompilerOptions(getProjectLibs(tree));
-    importAlias = createAlias(tree);
-  } else {
-    importCompilerOptions = '';
-    importAlias = '';
-  }
-  const templateSource = apply(url(`../../files`), [
-    filter(path => path === wallabyConfigSourceFileName),
-    template({
-      importCompilerOptions,
-      importAlias
-    }),
-    move(wallabyConfigFileName, '/')
-  ]);
-  return chain([branchAndMerge(mergeWith(templateSource))]);
-}
-
-function addBootstrapFile(tree: Tree) {
-  const nx = containNxScematics(tree);
-  const wallabyBootstrapSourceFileName = nx
-    ? '/nx/wallabyTest.ts'
-    : '/src/wallabyTest.ts';
-  const wallabyBootstrapFileName = nx ? 'nx' : '';
-  const templateSource = apply(url(`../../files`), [
-    filter(path => path === wallabyBootstrapSourceFileName),
-    move(wallabyBootstrapFileName, '')
-  ]);
-  return chain([branchAndMerge(mergeWith(templateSource))]);
+function addBootstrapFile() {
+  return (tree: Tree, context: SchematicContext) => {
+    const nx = containNxScematics(tree);
+    const wallabyBootstrapSourceFileName = nx
+      ? '/nx/wallabyTest.ts'
+      : '/src/wallabyTest.ts';
+    const wallabyBootstrapFileName = nx
+      ? '/wallabyTest.ts'
+      : '/src/wallabyTest.ts';
+    const files: Tree = url(`../../files`)(context) as Tree;
+    const scriptContent = files
+      .read(wallabyBootstrapSourceFileName)!
+      .toString('utf-8');
+    if (!tree.exists(wallabyBootstrapFileName)) {
+      tree.create(wallabyBootstrapFileName, scriptContent);
+    }
+    return tree;
+  };
 }
 
 function modifyTsconfigExcludeFile(): Rule {
@@ -175,25 +180,19 @@ function containNxScematics(tree: Tree): boolean {
 function getProjectLibs(tree: Tree): ProjectList {
   const sourceText = tree.read('/angular.json')!.toString('utf-8');
   const packageJson = JSON.parse(sourceText);
-  const projects = Object.entries(packageJson.projects).reduce(
-    (acc: any, current: any) => {
-      let [key, value] = current;
-      if (key.includes('-e2e')) {
-        return acc;
-      }
-      if (value.projectType === 'application') {
-        acc.apps.push(key);
-      }
-      if (value.projectType === 'library') {
-        acc.libs.push(key);
-      }
-      return acc;
-    },
-    {
-      apps: [],
-      libs: []
+  let projects = { apps: [] as string[], libs: [] as string[] };
+  for (let project in packageJson.projects) {
+    if (project.includes('-e2e')) {
+      continue;
     }
-  );
+    let projectInfo = packageJson.projects[project];
+    if (projectInfo.projectType === 'application') {
+      projects.apps.push(project);
+    }
+    if (projectInfo.projectType === 'library') {
+      projects.libs.push(project);
+    }
+  }
   return projects;
 }
 
@@ -219,20 +218,14 @@ function createCompilerOptions(defaultProject: ProjectList): string {
 function createAlias(tree: Tree): string {
   const sourceText = tree.read('/tsconfig.json')!.toString('utf-8');
   const tsconfig = JSON.parse(sourceText);
-  const alias: any[] = Object.entries(tsconfig.compilerOptions.paths).reduce(
-    (acc: any, current) => {
-      let [key, value] = current;
-      if (!key.includes('*')) {
-        return [
-          ...acc,
-          `'${key}': path.join(wallaby.projectCacheDir, '${value}' )`
-        ];
-      } else {
-        return acc;
-      }
-    },
-    []
-  );
+  let alias: any[] = [];
+  for (let path in tsconfig.compilerOptions.paths) {
+    if (!path.includes('*')) {
+      let value = tsconfig.compilerOptions.paths[path];
+      alias.push(`'${path}': path.join(wallaby.projectCacheDir, '${value}' )`);
+    }
+  }
+
   if (alias.length === 0) {
     return '';
   }

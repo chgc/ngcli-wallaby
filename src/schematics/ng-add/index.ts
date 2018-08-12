@@ -4,9 +4,14 @@ import {
   SchematicContext,
   Tree,
   url,
-  SchematicsException
+  template,
+  apply,
+  mergeWith,
+  branchAndMerge,
+  SchematicsException,
+  move,
+  filter
 } from '@angular-devkit/schematics';
-import { template as interpolateTemplate } from '@angular-devkit/core';
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
 
 const devDependencies = [
@@ -31,38 +36,32 @@ interface ProjectList {
 }
 
 export default function(_options: NgAddOptions): Rule {
-  return chain([
-    addConfigFile(),
-    addBootstrapFile(),
-    modifyTsconfigExcludeFile(),
-    addLoadersToPackageJson(),
-    addPackageInstallTask()
-  ]);
+  return (tree: Tree, context: SchematicContext) => {
+    const nx = containNxScematics(tree);
+    return chain([
+      nx
+        ? chain([addBootstrapFileForNx(), addConfigFileForNx(tree)])
+        : chain([
+            addConfigFile(),
+            addBootstrapFile(),
+            modifyTsconfigExcludeFile()
+          ]),
+      addLoadersToPackageJson(),
+      addPackageInstallTask()
+    ])(tree, context);
+  };
 }
 
 function addConfigFile(): Rule {
   return (tree: Tree, context: SchematicContext) => {
-    const nx = containNxScematics(tree);
-    let importCompilerOptions, importAlias;
-    const wallabyConfigSourceFileName = nx ? '/nx/wallaby.js' : '/wallaby.js';
+    const wallabyConfigSourceFileName = '/wallaby.js';
     const wallabyConfigFileName = '/wallaby.js';
 
-    if (nx) {
-      importCompilerOptions = createCompilerOptions(getProjectLibs(tree));
-      importAlias = createAlias(tree);
-    } else {
-      importCompilerOptions = '';
-      importAlias = '';
-    }
     const files: Tree = url(`../../files`)(context) as Tree;
-    const scriptContent = files
+    const createContent = files
       .read(wallabyConfigSourceFileName)!
       .toString('utf-8');
 
-    let createContent = interpolateTemplate(scriptContent)({
-      importCompilerOptions,
-      importAlias
-    });
     if (!tree.exists(wallabyConfigFileName)) {
       tree.create(wallabyConfigFileName, createContent);
     }
@@ -73,13 +72,8 @@ function addConfigFile(): Rule {
 
 function addBootstrapFile() {
   return (tree: Tree, context: SchematicContext) => {
-    const nx = containNxScematics(tree);
-    const wallabyBootstrapSourceFileName = nx
-      ? '/nx/wallabyTest.ts'
-      : '/src/wallabyTest.ts';
-    const wallabyBootstrapFileName = nx
-      ? '/wallabyTest.ts'
-      : '/src/wallabyTest.ts';
+    const wallabyBootstrapSourceFileName = '/src/wallabyTest.ts';
+    const wallabyBootstrapFileName = '/src/wallabyTest.ts';
     const files: Tree = url(`../../files`)(context) as Tree;
     const scriptContent = files
       .read(wallabyBootstrapSourceFileName)!
@@ -93,7 +87,6 @@ function addBootstrapFile() {
 
 function modifyTsconfigExcludeFile(): Rule {
   return (tree: Tree) => {
-    const nx = containNxScematics(tree);
     if (tree.exists('/src/tsconfig.app.json')) {
       const tsConfigSource = tree
         .read('/src/tsconfig.app.json')!
@@ -105,7 +98,6 @@ function modifyTsconfigExcludeFile(): Rule {
         }
       }
       tree.overwrite('/src/tsconfig.app.json', JSON.stringify(json, null, 2));
-    } else if (nx) {
     } else {
       throw new SchematicsException(`Could not find tsconfig.app.json.`);
     }
@@ -169,6 +161,36 @@ export function addDependencyToPackageJson(
   }
 
   return tree;
+}
+
+/**
+ * Work with Nx project
+ */
+
+function addConfigFileForNx(tree: Tree): Rule {
+  const wallabyConfigSourceFileName = '/nx/wallaby.js';
+  const importCompilerOptions = createCompilerOptions(getProjectLibs(tree));
+  const importAlias = createAlias(tree);
+  var templateSource = apply(url('../../files'), [
+    filter((path: string) => path === wallabyConfigSourceFileName),
+    template({
+      importCompilerOptions,
+      importAlias
+    }),
+    move('nx', '')
+  ]);
+  return branchAndMerge(mergeWith(templateSource));
+}
+
+function addBootstrapFileForNx() {
+  const wallabyBootstrapSourceFileName = '/nx/wallabyTest.ts';
+  var templateSource = apply(url('../../files'), [
+    filter((path: string) => {
+      return path === wallabyBootstrapSourceFileName;
+    }),
+    move('nx', '')
+  ]);
+  return branchAndMerge(mergeWith(templateSource));
 }
 
 function containNxScematics(tree: Tree): boolean {

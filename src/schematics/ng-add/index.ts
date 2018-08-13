@@ -168,27 +168,23 @@ export function addDependencyToPackageJson(
  */
 
 function addConfigFileForNx(tree: Tree): Rule {
-  const wallabyConfigSourceFileName = '/nx/wallaby.js';
+  const wallabyConfigSourceFileName = '/nx/wallaby/wallaby.js';
   const importCompilerOptions = createCompilerOptions(getProjectLibs(tree));
   const importAlias = createAlias(tree);
-  var templateSource = apply(url('../../files'), [
-    filter((path: string) => path === wallabyConfigSourceFileName),
+  var templateSource = apply(url('../../files/nx/wallaby'), [
     template({
       importCompilerOptions,
       importAlias
     }),
-    move('nx', '')
+    move('nx/wallaby/', '')
   ]);
   return branchAndMerge(mergeWith(templateSource));
 }
 
 function addBootstrapFileForNx() {
-  const wallabyBootstrapSourceFileName = '/nx/wallabyTest.ts';
-  var templateSource = apply(url('../../files'), [
-    filter((path: string) => {
-      return path === wallabyBootstrapSourceFileName;
-    }),
-    move('nx', '')
+  const wallabyBootstrapSourceFileName = '/nx/wallabyTest/wallabyTest.ts';
+  var templateSource = apply(url('../../files/nx/wallabyTest'), [
+    move('nx/wallabyTest', '')
   ]);
   return branchAndMerge(mergeWith(templateSource));
 }

@@ -16,14 +16,14 @@
   "homepage": "https://github.com/chgc/ngcli-wallaby#readme",
   "schematics": "./src/schematics/collection.json",
   "dependencies": {
-    "@angular-devkit/core": "^0.6.8",
-    "@angular-devkit/schematics": "^0.6.8",
+    "@angular-devkit/core": "^0.7.3",
+    "@angular-devkit/schematics": "^0.7.3",
     "@types/jasmine": "^2.6.0",
     "@types/node": "^8.0.31",
     "jasmine": "^2.8.0",
     "typescript": "^2.5.2"
   },
   "devDependencies": {
-    "@schematics/angular": "^0.5.13"
+    "@schematics/angular": "^0.7.3"
   }
 }

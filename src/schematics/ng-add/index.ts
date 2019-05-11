@@ -87,17 +87,15 @@ function addBootstrapFile() {
 
 function modifyTsconfigExcludeFile(): Rule {
   return (tree: Tree) => {
-    if (tree.exists('/src/tsconfig.app.json')) {
-      const tsConfigSource = tree
-        .read('/src/tsconfig.app.json')!
-        .toString('utf-8');
+    if (tree.exists('/tsconfig.app.json')) {
+      const tsConfigSource = tree.read('/tsconfig.app.json')!.toString('utf-8');
       const json = JSON.parse(tsConfigSource);
       if (json['exclude']) {
-        if (!(json['exclude'] as any[]).includes('wallabyTest.ts')) {
-          json['exclude'].push('wallabyTest.ts');
+        if (!(json['exclude'] as any[]).includes('src/wallabyTest.ts')) {
+          json['exclude'].push('src/wallabyTest.ts');
         }
       }
-      tree.overwrite('/src/tsconfig.app.json', JSON.stringify(json, null, 2));
+      tree.overwrite('/tsconfig.app.json', JSON.stringify(json, null, 2));
     } else {
       throw new SchematicsException(`Could not find tsconfig.app.json.`);
     }
